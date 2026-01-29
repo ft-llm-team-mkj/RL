@@ -75,7 +75,7 @@ nvidia-smi -L
 # Available configs:
 #   - examples/configs/sft_tir-merged_hs_ms_rt_hg.yaml
 #   - examples/configs/sft_cot-merged_hs_ms_rt_hg.yaml
-#   - examples/configs/sft_tir-merged_full_rt_hg.yaml
+#   - examples/configs/sft_tir-merged_rt_hg.yaml
 #   - examples/configs/sft_cot-merged_rt_hg.yaml
 CONFIG=${CONFIG:-examples/configs/sft_tir-merged_hs_ms_rt_hg.yaml}
 
