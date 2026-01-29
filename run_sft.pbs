@@ -1,0 +1,109 @@
+#!/bin/bash
+#PBS -q rt_HG
+#PBS -l select=1
+#PBS -l walltime=48:00:00
+#PBS -P gch51701
+
+cd ${PBS_O_WORKDIR}
+
+set -euo pipefail
+
+# Load modules if on ABCI
+if [ -f /etc/profile.d/modules.sh ]; then
+    source /etc/profile.d/modules.sh
+    module load cuda/12.6/12.6.1
+    module load cudnn/9.5/9.5.1
+    module load nccl/2.23/2.23.4-1
+fi
+
+# Load environment variables from .env
+export PATH=$HOME/.local/bin:$PATH
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
+# リアルタイム出力のための設定
+export PYTHONUNBUFFERED=1
+
+# Convert GPU UUID to index if needed
+# vLLM doesn't support UUID format (GPU-xxxx), need numeric indices
+if [ -n "${CUDA_VISIBLE_DEVICES:-}" ]; then
+    if [[ $CUDA_VISIBLE_DEVICES == *GPU-* ]]; then
+        echo "Original CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
+
+        # Get mapping of UUID to index
+        declare -A UUID_TO_INDEX
+        INDEX=0
+        while IFS= read -r line; do
+            UUID=$(echo "$line" | grep -oP 'GPU-[a-f0-9-]+')
+            if [ -n "$UUID" ]; then
+                UUID_TO_INDEX[$UUID]=$INDEX
+                INDEX=$((INDEX + 1))
+            fi
+        done < <(nvidia-smi -L)
+
+        # Convert each UUID to index
+        NEW_DEVICES=""
+        IFS=',' read -ra UUIDS <<< "$CUDA_VISIBLE_DEVICES"
+        for UUID in "${UUIDS[@]}"; do
+            UUID=$(echo "$UUID" | xargs)  # trim whitespace
+            if [ -n "${UUID_TO_INDEX[$UUID]:-}" ]; then
+                if [ -n "$NEW_DEVICES" ]; then
+                    NEW_DEVICES="$NEW_DEVICES,${UUID_TO_INDEX[$UUID]}"
+                else
+                    NEW_DEVICES="${UUID_TO_INDEX[$UUID]}"
+                fi
+            fi
+        done
+
+        if [ -n "$NEW_DEVICES" ]; then
+            export CUDA_VISIBLE_DEVICES=$NEW_DEVICES
+            echo "Converted CUDA_VISIBLE_DEVICES to indices: $CUDA_VISIBLE_DEVICES"
+        else
+            # Fallback: use all GPUs
+            unset CUDA_VISIBLE_DEVICES
+            echo "Could not convert UUIDs, using all GPUs"
+        fi
+    fi
+fi
+
+# Show GPU info
+echo "Final CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-unset (all GPUs)}"
+nvidia-smi -L
+
+# SFT Configuration
+# Available configs:
+#   - examples/configs/sft_tir-merged_hs_ms_rt_hg.yaml
+#   - examples/configs/sft_cot-merged_hs_ms_rt_hg.yaml
+#   - examples/configs/sft_tir-merged_full_rt_hg.yaml
+#   - examples/configs/sft_cot-merged_rt_hg.yaml
+CONFIG=${CONFIG:-examples/configs/sft_tir-merged_hs_ms_rt_hg.yaml}
+
+echo "=============================================="
+echo "Running SFT Training"
+echo "Config: $CONFIG"
+echo "Start time: $(date)"
+echo "=============================================="
+
+# Create necessary directories
+mkdir -p logs results
+
+# Run SFT training
+echo "Starting SFT training..."
+uv run python examples/run_sft.py \
+    --config "$CONFIG" \
+    2>&1 | tee "logs/run_sft.pbs.o${PBS_JOBID}.realtime"
+
+EXIT_CODE=$?
+echo "End time: $(date)"
+
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "SFT Training completed successfully!"
+    # Show checkpoint location
+    echo "Checkpoints saved in: results/"
+    ls -la results/ 2>/dev/null || true
+else
+    echo "SFT Training failed (exit code: $EXIT_CODE)"
+fi
+
+exit $EXIT_CODE
