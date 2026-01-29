@@ -1,4 +1,4 @@
-# SFT Configuration for tir-merged (full) dataset
+# SFT Configuration for tir-merged dataset
 # Model: ft-llm-team-mkj/baseline-model-instruct-8k-yarn (9B)
 # Environment: ABCI rt_HG (H100 x 1 GPU)
 # Dataset: ft-llm-team-mkj/tir-merged (12,986 samples)
@@ -16,7 +16,7 @@ sft:
 
 checkpointing:
   enabled: true
-  checkpoint_dir: "results/sft_tir-merged_full_9b"
+  checkpoint_dir: "results/sft_tir-merged_9b"
   metric_name: "val:val_loss"
   higher_is_better: false
   keep_top_k: 3
@@ -104,10 +104,10 @@ logger:
   monitor_gpus: true
   wandb:
     entity: "llm-jp-competition"
-    project: "sft-tir-merged-full"
-    name: "sft-tir-merged-full-9b"
+    project: "sft-tir-merged"
+    name: "sft-tir-merged-9b"
   tensorboard:
-    log_dir: "tb_logs-sft-tir-merged-full"
+    log_dir: "tb_logs-sft-tir-merged"
   gpu_monitoring:
     collection_interval: 10
     flush_interval: 10
