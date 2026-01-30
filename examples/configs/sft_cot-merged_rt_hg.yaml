@@ -29,7 +29,7 @@ policy:
     name: ${policy.model_name}
     chat_template: "default"
     chat_template_kwargs: null
-  train_global_batch_size: 8
+  train_global_batch_size: 4
   train_micro_batch_size: 1
   max_total_sequence_length: 4096
   precision: "bfloat16"
