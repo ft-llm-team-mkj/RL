@@ -48,10 +48,7 @@ policy:
     custom_parallel_plan: null
 
     lora_cfg:
-      enabled: true
-      dim: 16
-      alpha: 32
-      match_all_linear: true
+      enabled: false
 
   dynamic_batching:
     enabled: false
