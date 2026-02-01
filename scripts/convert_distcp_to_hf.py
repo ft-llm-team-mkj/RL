@@ -108,25 +108,28 @@ def load_distcp_weights(weights_dir: Path) -> dict[str, torch.Tensor]:
     """Load DTensor distributed checkpoint and merge shards."""
     print(f"Loading distributed checkpoint from {weights_dir}")
 
-    # Use PyTorch's distributed checkpoint loading
-    # This automatically handles DTensor resharding
-    state_dict = {}
-
     # Load using dcp.load with no_dist mode for single-process loading
     storage_reader = dcp.FileSystemReader(weights_dir)
 
     # Read metadata to understand the checkpoint structure
     metadata = storage_reader.read_metadata()
 
-    # For DTensor checkpoints saved with TP=8, we need to load and merge
-    # Create a simple state dict to load into
     print("Reading checkpoint metadata...")
     print(f"Found {len(metadata.state_dict_metadata)} tensors")
 
-    # Load the checkpoint
-    # We'll load directly and handle the reshaping ourselves
-    state_dict = dcp.load(
-        state_dict={},
+    # Create placeholder tensors based on metadata
+    # dcp.load() modifies state_dict in-place, doesn't return it
+    state_dict = {}
+    for key, tensor_meta in metadata.state_dict_metadata.items():
+        # Get the full tensor shape from metadata
+        shape = tensor_meta.size
+        # Use the properties from metadata if available
+        dtype = getattr(tensor_meta.properties, 'dtype', torch.bfloat16) if hasattr(tensor_meta, 'properties') else torch.bfloat16
+        state_dict[key] = torch.empty(shape, dtype=dtype)
+
+    # Load the checkpoint - this populates state_dict in-place
+    dcp.load(
+        state_dict=state_dict,
         storage_reader=storage_reader,
     )
 
