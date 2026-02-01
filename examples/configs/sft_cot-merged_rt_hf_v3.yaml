@@ -1,0 +1,118 @@
+# SFT Configuration for cot-merged dataset
+# Model: ft-llm-team-mkj/baseline-model-instruct-8k-yarn (9B)
+# Environment: ABCI rt_HF (H100 x 8 GPU)
+# Dataset: ft-llm-team-mkj/cot-merged (35,402 samples)
+# v3: 高学習率 + 1エポック（積極的学習）
+
+sft:
+  max_num_epochs: 1
+  max_num_steps: 999999  # Large number to train for full epoch
+
+  val_period: 100
+  val_batches: 16
+  val_global_batch_size: 32
+  val_micro_batch_size: 1
+  val_at_start: true
+  seed: 42
+
+checkpointing:
+  enabled: true
+  checkpoint_dir: "results/sft_cot-merged_9b_rt_hf_v3"
+  metric_name: "val:val_loss"
+  higher_is_better: false
+  keep_top_k: 3
+  save_period: 500
+  checkpoint_must_save_by: null
+
+policy:
+  model_name: "ft-llm-team-mkj/baseline-model-instruct-8k-yarn"
+  tokenizer:
+    name: ${policy.model_name}
+    chat_template: "default"
+    chat_template_kwargs: null
+  train_global_batch_size: 32
+  train_micro_batch_size: 1
+  max_total_sequence_length: 8192
+  precision: "bfloat16"
+
+  offload_optimizer_for_logprob: false
+
+  dtensor_cfg:
+    _v2: false
+    enabled: true
+    env_vars: {}
+    cpu_offload: false
+    sequence_parallel: false
+    activation_checkpointing: true
+    tensor_parallel_size: 8
+    context_parallel_size: 1
+    custom_parallel_plan: null
+
+    lora_cfg:
+      enabled: false
+
+  dynamic_batching:
+    enabled: false
+    train_mb_tokens: ${mul:${policy.max_total_sequence_length}, ${policy.train_micro_batch_size}}
+    sequence_length_round: 64
+
+  sequence_packing:
+    enabled: true
+    train_mb_tokens: ${mul:${policy.max_total_sequence_length}, ${policy.train_micro_batch_size}}
+    algorithm: "modified_first_fit_decreasing"
+    sequence_length_round: 64
+
+  make_sequence_length_divisible_by: 8
+  max_grad_norm: 1.0
+
+  optimizer:
+    name: "torch.optim.AdamW"
+    kwargs:
+      lr: 5.0e-5
+      weight_decay: 0.1
+      betas: [0.9, 0.98]
+      eps: 1e-5
+      foreach: false
+      fused: false
+
+  megatron_cfg:
+    enabled: false
+    env_vars: {}
+
+data:
+  max_input_seq_length: ${policy.max_total_sequence_length}
+  add_bos: true
+  add_eos: true
+  add_generation_prompt: false
+  shuffle: true
+  num_workers: 4
+
+  dataset_name: "openai_format"
+  train_data_path: "data/cot-merged/train.jsonl"
+  val_data_path: "data/cot-merged/val.jsonl"
+  chat_key: "messages"
+  system_key: null
+  system_prompt: null
+  tool_key: null
+  use_preserving_dataset: false
+
+logger:
+  log_dir: "logs"
+  wandb_enabled: true
+  tensorboard_enabled: true
+  mlflow_enabled: false
+  swanlab_enabled: false
+  monitor_gpus: true
+  wandb:
+    entity: "llm-jp-competition"
+    project: "sft-cot-merged"
+    name: "sft-cot-merged-9b-rt_hf-v3"
+  tensorboard:
+    log_dir: "tb_logs-sft-cot-merged-rt_hf-v3"
+  gpu_monitoring:
+    collection_interval: 10
+    flush_interval: 10
+
+cluster:
+  gpus_per_node: 8
+  num_nodes: 1
