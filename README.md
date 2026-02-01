@@ -538,6 +538,46 @@ uv run --extra mcore python examples/converters/convert_megatron_to_hf.py \
 
 For an in-depth explanation of checkpointing, refer to the [Checkpointing documentation](docs/design-docs/checkpointing.md).
 
+### Upload to HuggingFace Hub
+
+You can convert DTensor checkpoints directly to HuggingFace format and upload them to HuggingFace Hub in a single command:
+
+```sh
+# Convert and upload to HuggingFace Hub (public)
+uv run python scripts/convert_distcp_to_hf.py \
+    --checkpoint-dir results/sft_model/step_1000 \
+    --output-path ./models/sft_model \
+    --repo-id ft-llm-team-mkj/my-sft-model
+
+# Convert and upload as private repository
+uv run python scripts/convert_distcp_to_hf.py \
+    --checkpoint-dir results/sft_model/step_1000 \
+    --output-path ./models/sft_model \
+    --repo-id ft-llm-team-mkj/my-sft-model \
+    --private
+```
+
+**Authentication:** Before uploading, authenticate with HuggingFace Hub using one of these methods:
+- Run `huggingface-cli login` interactively
+- Set the `HF_TOKEN` environment variable
+
+**PBS Job Submission:**
+
+```sh
+# Submit conversion job with Hub upload
+CHECKPOINT_DIR=results/sft_model/step_1000 \
+OUTPUT_PATH=./models/sft_model \
+REPO_ID=ft-llm-team-mkj/my-model \
+qsub convert_to_hf.pbs
+
+# Submit as private repository
+CHECKPOINT_DIR=results/sft_model/step_1000 \
+OUTPUT_PATH=./models/sft_model \
+REPO_ID=ft-llm-team-mkj/my-model \
+PRIVATE=1 \
+qsub convert_to_hf.pbs
+```
+
 ### Run Evaluation
 
 Run the evaluation script with the converted model:
