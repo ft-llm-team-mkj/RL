@@ -105,9 +105,9 @@ logger:
   wandb:
     entity: "llm-jp-competition"
     project: "sft-cot-merged"
-    name: "sft-cot-merged-9b-rt_hf_v4"
+    name: "sft-cot-merged-9b-rt_hf-v4"
   tensorboard:
-    log_dir: "tb_logs-sft-cot-merged-rt_hf_v4"
+    log_dir: "tb_logs-sft-cot-merged-rt_hf-v4"
   gpu_monitoring:
     collection_interval: 10
     flush_interval: 10
