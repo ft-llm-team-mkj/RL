@@ -16,7 +16,7 @@ sft:
 
 checkpointing:
   enabled: true
-  checkpoint_dir: "results/sft_cot-merged_9b_rt_hf"
+  checkpoint_dir: "results/sft_cot-merged_9b_rt_hf_v4"
   metric_name: "val:val_loss"
   higher_is_better: false
   keep_top_k: 3
@@ -105,9 +105,9 @@ logger:
   wandb:
     entity: "llm-jp-competition"
     project: "sft-cot-merged"
-    name: "sft-cot-merged-9b-rt_hf"
+    name: "sft-cot-merged-9b-rt_hf_v4"
   tensorboard:
-    log_dir: "tb_logs-sft-cot-merged-rt_hf"
+    log_dir: "tb_logs-sft-cot-merged-rt_hf_v4"
   gpu_monitoring:
     collection_interval: 10
     flush_interval: 10
